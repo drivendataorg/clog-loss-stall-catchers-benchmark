@@ -46,10 +46,10 @@ else
     numFiles = numel(files);
     sequences = cell(numFiles,1);
     
-    parfor i = 1:numFiles
+    for i = 1:numFiles
         fprintf("Reading file %d of %d...\n", i, numFiles);
         sequences{i,1} = activations(netCNN,read(fdsReSz),layerName,...
-            'OutputAs','columns','MiniBatchSize',1,'ExecutionEnvironment',"auto");
+            'OutputAs','columns','ExecutionEnvironment',"auto");
     end
     
     save(tempFile,"sequences");
@@ -161,19 +161,8 @@ lgraph = connectLayers(lgraph,"fold/miniBatchSize","unfold/miniBatchSize");
 analyzeNetwork(lgraph)
 net = assembleNetwork(lgraph);
 
-% Prepare Test Data
-tempfds = fullfile(tempdir,"testfds.mat");
-
-if exist(tempfds,'file')
-    load(tempfds,'testfds')
-else
-    
-    test = readtable("test_metadata.csv");
-    testfds = fileDatastore(test.url,'ReadFcn', @readVideo);
-    
-    save(tempfds,"testfds");
-end
-
+% Prepare Test Data  
+testfds = fileDatastore('s3://drivendata-competition-clog-loss/test/','ReadFcn', @readVideo);
 testfdsReSz = transform(testfds,@(x) {imresize(x,inputSize)});
 
 % Classify Using Test Data
@@ -182,12 +171,13 @@ numTestFiles = numel(testFiles);
 
 YPred = cell(numTestFiles,1);
 
-parfor i = 1:numTestFiles
+for i = 1:numTestFiles
     fprintf("Reading file %d of %d...\n", i, numTestFiles);
-    YPred{i,1} = classify(net,read(testfdsReSz),'MiniBatchSize',1);
+    YPred{i,1} = classify(net,read(testfdsReSz),'ExecutionEnvironment','auto');
 end
 
 %% Save Submission to File
+test = readtable("test_metadata.csv");
 testResults = table(test.filename,YPred(:,1),'VariableNames',{'filename','stalled'});
 writetable(testResults,'testResults_nano.csv');
 
