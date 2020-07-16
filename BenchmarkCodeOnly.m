@@ -16,13 +16,11 @@ tempfds = fullfile(tempdir,"fds_nano.mat");
 if exist(tempfds,'file')
     load(tempfds,'fds')
 else
-    
     fds = fileDatastore(nanotrain.url,'ReadFcn', @readVideo);
-    files = fds.Files;
-    
     save(tempfds,"fds");
 end
 
+files = fds.Files;
 dataOut = preview(fds);
 tile = imtile(dataOut);
 imshow(tile);
